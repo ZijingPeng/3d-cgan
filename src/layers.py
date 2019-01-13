@@ -1,8 +1,8 @@
 import tensorflow as tf
 
-
-def generator(z, x, output_dim, reuse=False, alpha=0.2, training=True):
+def generate_grid(z, x, output_dim, reuse=False, alpha=0.2, training=True):
     with tf.variable_scope('generator', reuse=reuse):
+
         x1 = tf.layers.conv2d(x, 64, 4, strides=2, padding='same')
         relu1 = tf.maximum(alpha * x1, x1)
         # 64x64x64
@@ -78,14 +78,15 @@ def generator(z, x, output_dim, reuse=False, alpha=0.2, training=True):
         relu12 = tf.maximum(alpha * bn12, bn12)
         # 32x32x32x16
 
-        logits = tf.layers.conv3d_transpose(relu12, 1, 4, strides=1, padding='same')
+        logits = tf.layers.conv3d_transpose(relu12, output_dim, 4, strides=1, padding='same')
+
+        # print((np.array(logits)).shape)
 
         out = tf.tanh(logits)
         return out
 
 
-
-def discriminator(xv, xp, reuse=False, alpha=0.2):
+def discriminate_grid(xv, xp, reuse=False, alpha=0.2):
     with tf.variable_scope('discriminator', reuse=reuse):
         xp = tf.layers.conv2d(xp, 2, 4, strides=1, padding='same')
         xp = tf.layers.batch_normalization(xp, training=True)
@@ -95,6 +96,7 @@ def discriminator(xv, xp, reuse=False, alpha=0.2):
 
         x = tf.concat([xv, xp], 4)
         # xv=32x32x32x2
+        #x = xv
 
         x1 = tf.layers.conv3d(x, 64, 4, strides=2, padding='same')
         relu1 = tf.maximum(alpha * x1, x1)
@@ -119,6 +121,8 @@ def discriminator(xv, xp, reuse=False, alpha=0.2):
         bn5 = tf.layers.batch_normalization(x5, training=True)
         relu5 = tf.maximum(alpha * bn5, bn5)
         # 4x4x4x1
+
+        # relu5 = tf.reshape(xp, (-1, 4 * 4 * 4))
 
         logits = tf.layers.dense(relu5, 1)
         out = tf.sigmoid(logits)

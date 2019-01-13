@@ -1,8 +1,9 @@
 from matplotlib import pyplot as plt
-from mpl_toolkits import mplot3d
 import numpy as np
-from src.binvox_rw import Voxels, write
+import cv2
 
+
+# scale [0, 255] to [-1, 1]
 def scale(x, feature_range=(-1, 1)):
     # scale to (0, 1)
     x = ((x - x.min()) / (255 - x.min()))
@@ -14,18 +15,19 @@ def scale(x, feature_range=(-1, 1)):
     return x
 
 
-# crop pics randomly
-def random_crop(pic, old_n, new_n):
-    if old_n <= new_n:
-        return -1
-    w = np.random.randint(0, old_n - new_n + 1)
-    h = np.random.randint(0, old_n - new_n + 1)
+# preprocess pics before train
+def pics_preprocess(pics, dim_in, dim_out):
+    out = []
+    for pic in pics:
+        pic = generate_white_background(pic, dim_in)
+        pic = cv2.resize(pic, (dim_out, dim_out))
+        out.append(pic)
+    out = np.array(out)
+    return out
 
-    return pic[w : w + new_n, h : h + new_n]
 
-
-# add noise to background
-def generate_background(pic, n):
+# add white to background
+def generate_white_background(pic, n):
     for i in range(n):
         for j in range(n):
             if pic[i][j] == 0:
@@ -33,6 +35,7 @@ def generate_background(pic, n):
     return pic
 
 
+# display binvox
 def display_binvox(model):
     ax = plt.axes(projection='3d')
 
@@ -51,10 +54,15 @@ def display_binvox(model):
     return ax
 
 
+#display pic
 def display_pic(pic, n):
-    #pic = np.array(n)
     pic = np.add(np.multiply(pic, 0.5), 0.5)
     plt.imshow(pic.reshape([n, n]), cmap='gray')
-    #plt.imshow(pic)
     plt.show()
 
+
+# resize single pic to feed the network
+def resize_input_pic(pic):
+    pic = cv2.resize(pic, (128, 128))
+    pic = np.reshape(pic, (128, 128, 1))
+    return pic
