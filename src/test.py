@@ -13,4 +13,4 @@ if __name__ == '__main__':
         pic = resize_input_pic(pic)
         pics.append(pic)
 
-    stage.restore(pics, 3, sess_path='../ckp/dm0.ckpt')
+    stage.restore(pics, 5, sess_path='../ckp/dm0.ckpt')
