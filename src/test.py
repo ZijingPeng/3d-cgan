@@ -7,7 +7,7 @@ if __name__ == '__main__':
     stage = Stage()
 
     pics = []
-    for path in glob.glob('../data/renders/*.png'):
+    for path in glob.glob('../data/test/*.jpg'):
         pic = cv2.imread(path, 0)
         # resize single pic to the feed the network
         pic = resize_input_pic(pic)
