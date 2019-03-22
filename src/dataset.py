@@ -1,89 +1,120 @@
-from src.binvox_rw import *
 from src.preprocess import *
 import cv2
-import zipfile
-import copy
+import glob
+import h5py
 
 
-class Dataset:
-    def __init__(self, prob, pic_dim_in=137, pic_dim_out=128, vox_dim=32):
-        self.count = 0
+# Dataset for stage1
+class Dataset1:
+    def __init__(self, prob=0.8):
+        self.count = -1
         self.prob = prob
-        self.pic_dim_in = pic_dim_in
-        self.pic_dim_out = pic_dim_out
-        self.vox_dim = vox_dim
 
-        # load images
-        pics = self.load_pics()
-        self.pics = pics_preprocess(copy.deepcopy(pics), self.pic_dim_in, self.pic_dim_out)
-        self.pics = np.reshape(self.pics, (-1, self.pic_dim_out, self.pic_dim_out, 1))
-
-        # load models
-        self.voxs = self.load_binvoxs()
-        self.voxs = np.reshape(self.voxs, (-1, self.vox_dim, self.vox_dim, self.vox_dim, 1))
+        # load views and models
+        self.views = self.load_grey_views()
+        self.models = self.load_shape_models()
 
 
-    def batches(self, batch_size):
+    def batches(self, batch_size=32):
         self.count = self.count + 1
-        if self.count == 5:
-            # reload images
-            pics = self.load_pics()
-            self.pics = pics_preprocess(copy.deepcopy(pics), self.pic_dim_in, self.pic_dim_out)
-            self.pics = np.reshape(self.pics, (-1, self.pic_dim_out, self.pic_dim_out, 1))
-
-            # load models
-            self.voxs = self.load_binvoxs()
-            self.voxs = np.reshape(self.voxs, (-1, self.vox_dim, self.vox_dim, self.vox_dim, 1))
+        if self.count == 10:
+            # reload views
+            self.views = self.load_grey_views()
+            self.models = self.load_shape_models()
 
             self.count = 0
 
-        idx = np.arange(self.pics.shape[0])
+        idx = np.arange(self.views.shape[0])
         np.random.shuffle(idx)
-        self.pics = self.pics[idx]
-        self.voxs = self.voxs[idx]
+        self.views = self.views[idx]
+        self.models = self.models[idx]
 
-        n_batches = self.pics.shape[0] // batch_size
+        n_batches = self.views.shape[0] // batch_size
         for ii in range(0, int(n_batches * self.prob)):
-            x = self.pics[ii * batch_size:(ii + 1) * batch_size]
-            y = self.voxs[ii * batch_size:(ii + 1) * batch_size]
+            x = self.views[ii * batch_size:(ii + 1) * batch_size]
+            y = self.models[ii * batch_size:(ii + 1) * batch_size]
 
             yield x, y
 
 
-    @staticmethod
-    def load_binvoxs():
-        voxels = []
-        with zipfile.ZipFile('../data/binvox.zip') as z:
-            for filename in z.namelist():
-                if '.binvox' in filename:
-                    with z.open(filename) as fp:
-                        model = read_as_3d_array(fp)
-                        model = np.array(model.data.astype(np.float32))
-                        model = model * 2 - 1
-                        voxels.append(model)
+    def load_grey_views(self):
+        views = []
+        index = '{}.png'.format(np.random.randint(12))
+        for path in glob.glob('../ShapeNetCore_im2avatar/train/03001627/*/views/{}'.format(index)):
 
-        return np.array(voxels)
+            view = cv2.imread(path, 0)
+            # scale to (-1, 1)
+            view = scale(view)
+            views.append(view)
 
-    @staticmethod
-    def load_pics():
-        pics = []
-        index = '{}{}.png'.format(np.random.randint(2), np.random.randint(9))
-        with zipfile.ZipFile('../data/rendering.zip') as z:
-            for filename in z.namelist():
-                if index in filename:
-                    fp = z.read(filename)
-                    image = cv2.imdecode(np.frombuffer(fp, np.uint8), 0)
-                    pics.append(image)
+        return np.expand_dims(np.array(views), 3)
+
+
+    def load_shape_models(self):
+        models = []
+        for path in glob.glob('../ShapeNetCore_im2avatar/train/03001627/*/models/model_shape_32.h5'):
+            f = h5py.File(path, 'r')
+            model = np.array(f['data'])
+            #_ = display_grey_model(model)
+            models.append(model)
+
+        return np.array(models)
+
+
+# Dataset for stage2
+class Dataset2:
+    def __init__(self, prob=0.8):
+        self.count = -1
+        self.prob = prob
+
+        # load views and models
+        self.color_views = self.load_color_views()
+        self.color_models = self.load_color_models()
+
+
+    def batches(self, batch_size=32):
+        self.count = self.count + 1
+        if self.count == 10:
+            # reload views
+            self.color_views = self.load_color_views()
+            self.color_models = self.load_color_models()
+
+            self.count = 0
+
+        idx = np.arange(self.color_views.shape[0])
+        np.random.shuffle(idx)
+        self.color_views = self.color_views[idx]
+        self.color_models = self.color_models[idx]
+
+        n_batches = self.color_views.shape[0] // batch_size
+        for ii in range(0, int(n_batches * self.prob)):
+            x = self.color_views[ii * batch_size:(ii + 1) * batch_size]
+            y = self.color_models[ii * batch_size:(ii + 1) * batch_size]
+
+            yield x, y
+
+
+    def load_color_models(self):
+        models = []
+        for path in glob.glob('../ShapeNetCore_im2avatar/train/03001627/*/models/model_color_32.h5'):
+            f = h5py.File(path, 'r')
+            model = np.array(f['data'])
+            models.append(model)
+
+        print('models')
+        return np.array(models)
+
+
+    def load_color_views(self):
+        color_views = []
+        index = '{}.png'.format(np.random.randint(12))
+
+        for path in glob.glob('../ShapeNetCore_im2avatar/train/03001627/*/views/{}'.format(index)):
+            color_view = cv2.imread(path, 1)
+            color_view = color_view / 255
+            color_view = color_view[..., ::-1]
+            color_view = cv2.resize(color_view, (32, 32))
+            color_views.append(color_view)
+
         print(index)
-        return np.array(pics)
-
-    @staticmethod
-    def read_vox_from_path(path):
-        with open(path, 'rb') as f:
-            model = read_as_3d_array(f)
-            model = np.array(model.data.astype(np.float32))
-            model = model * 2 - 1
-            model = np.expand_dims(model, 3)
-            # （32， 32， 32， 1）
-
-        return np.array(model)
+        return np.array(color_views)

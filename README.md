@@ -1,7 +1,7 @@
 # 3d-cgan
-Image-to-Model Translation with Conditional Adversarial Nets 
+A neural network based on Conditional GAN which can translated image to colored model.
 
-Demo [here](207.148.26.179)
+Demo [here](207.148.26.179) (This page haven't been finished yet)
 
 ### Getting started
 
@@ -11,20 +11,23 @@ git clone https://github.com/ZijingPeng/3d-cgan.git
 
 ### Datasets
 
-- ShapeNet rendered images <http://cvgl.stanford.edu/data2/ShapeNetRendering.tgz>
-- ShapeNet voxelized models <http://cvgl.stanford.edu/data2/ShapeNetVox32.tgz>
+I downloaded the datasets from [im2avatar](https://github.com/syb7573330/im2avatar) and [3D-R2N2](https://github.com/chrischoy/3D-R2N2) ,  and made some revise (see details in `prepare_dataset.py`). 
 
-I used the datasets in [3D-R2N2](https://github.com/chrischoy/3D-R2N2)
+**You can just download the dataset I prepared:**
+
+- ShapeNetCore_im2avatar: https://drive.google.com/open?id=1swd-K0iBFK08LfOWo3MF_63YGZ22-xwc
 
 ### Checkpoints
 
-Download pretrained checkpoints [here](https://drive.google.com/open?id=1OPMyMb5frKPJLxU24JP5_l_rgiJq8W-V). I trained for 100 epochs.
+Download pretrained checkpoints [here](https://drive.google.com/open?id=1Nf3ymgnrX7Y8DLdTZAfG1DiqoZ9b_3Qt).
 
 ### How to run
 
-If you want to use pretrained checkpoints, download and copy to `ckp`  folder, then run the `test.py` .
+Download checkpoints and copy to `ckp`  folder, download datasets to `ShapeNetCore_im2avatar` folder.
 
-If you want to train yourself, download datasets and copy to `data` folder, then run `train.py`.
+Then run the `test.py` to generate models or run `train.py` to train.
+
+When you are testing images downloaded online, you had better use `cv2.dilate` or similar function to preprocess the images, in order to exclude light influences.  (see comments in  `test.py` )
 
 ### License
 

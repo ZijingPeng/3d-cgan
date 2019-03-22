@@ -1,43 +1,20 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import cv2
+import matplotlib.colors
 from mpl_toolkits import mplot3d
 
 
 # scale [0, 255] to [-1, 1]
-def scale(x, feature_range=(-1, 1)):
-    # scale to (0, 1)
-    x = ((x - x.min()) / (255 - x.min()))
-
-    # scale to feature_range
-    min, max = feature_range
-    x = x * (max - min) + min
+def scale(x):
+    x = x / 255
+    x = x * 2 - 1
 
     return x
 
 
-# preprocess pics before train
-def pics_preprocess(pics, dim_in, dim_out):
-    out = []
-    for pic in pics:
-        pic = generate_white_background(pic, dim_in)
-        pic = cv2.resize(pic, (dim_out, dim_out))
-        out.append(pic)
-    out = np.array(out)
-    return out
-
-
-# add white to background
-def generate_white_background(pic, n):
-    for i in range(n):
-        for j in range(n):
-            if pic[i][j] == 0:
-                pic[i][j] = 255
-    return pic
-
-
 # display binvox
-def display_binvox(model):
+def display_color_model(model, n=32):
     ax = plt.axes(projection='3d')
 
     # Data for a three-dimensional line
@@ -45,9 +22,28 @@ def display_binvox(model):
     xline = np.sin(zline)
     yline = np.cos(zline)
     ax.plot3D(xline, yline, zline, 'gray')
-    for x in range(0, 32):
-      for y in range(0, 32):
-        for z in range(0, 32):
+    for x in range(0, n):
+      for y in range(0, n):
+        for z in range(0, n):
+          if all(i >= 0 for i in model[x, y, z]) and model[x, y, z][0] < 0.9:
+            color = matplotlib.colors.rgb2hex(model[x, y, z])
+            ax.scatter3D(x, y, z, c=color,  cmap=None)
+    plt.show()
+    print('display')
+    return ax
+
+
+def display_grey_model(model, n=32):
+    ax = plt.axes(projection='3d')
+
+    # Data for a three-dimensional line
+    zline = np.linspace(0, 15, 1000)
+    xline = np.sin(zline)
+    yline = np.cos(zline)
+    ax.plot3D(xline, yline, zline, 'gray')
+    for x in range(0, n):
+      for y in range(0, n):
+        for z in range(0, n):
           if model[x, y, z] > 0:
             ax.scatter3D(x, y, z, c='g', cmap=None)
     plt.show()
@@ -55,15 +51,46 @@ def display_binvox(model):
     return ax
 
 
-#display pic
-def display_pic(pic, n):
-    pic = np.add(np.multiply(pic, 0.5), 0.5)
-    plt.imshow(pic.reshape([n, n]), cmap='gray')
+#display view
+def display_view(view):
+    view = np.add(np.multiply(view, 0.5), 0.5)
+    cv2.imshow("image", view)
+    cv2.waitKey()
+
+
+# crop view randomly
+def random_crop(view, old_n, new_n):
+    if old_n <= new_n:
+        return -1
+    w = np.random.randint(0, old_n - new_n + 1)
+    h = np.random.randint(0, old_n - new_n + 1)
+
+    return view[w : w + new_n, h : h + new_n]
+
+
+# add noise to background
+def generate_random_background(view, n):
+    for i in range(n):
+        for j in range(n):
+            if view[i][j] == 0:
+                view[i][j] = np.random.randint(156) + 100
+    return view
+
+
+def display_model(shape, color, n=32):
+    ax = plt.axes(projection='3d')
+
+    # Data for a three-dimensional line
+    zline = np.linspace(0, 15, 1000)
+    xline = np.sin(zline)
+    yline = np.cos(zline)
+    ax.plot3D(xline, yline, zline, 'gray')
+    for x in range(0, n):
+      for y in range(0, n):
+        for z in range(0, n):
+          if shape[x, y, z] > 0 and all(i >= 0 for i in color[x, y, z]):
+            c = matplotlib.colors.rgb2hex(color[x, y, z])
+            ax.scatter3D(x, y, z, c=c,  cmap=None)
     plt.show()
-
-
-# resize single pic to feed the network
-def resize_input_pic(pic):
-    pic = cv2.resize(pic, (128, 128))
-    pic = np.reshape(pic, (128, 128, 1))
-    return pic
+    print('display')
+    return ax
