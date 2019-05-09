@@ -3,6 +3,10 @@ A neural network based on Conditional GAN which can translated image to colored 
 
 Demo [here](207.148.26.179) (This page haven't been finished yet)
 
+![img-from-testset](img-from-testset.png)
+
+![img-from-google](img-from-google.png)
+
 ### Getting started
 
 ```
