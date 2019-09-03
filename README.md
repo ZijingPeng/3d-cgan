@@ -1,7 +1,12 @@
 # 3d-cgan
+
 A neural network based on Conditional GAN which can translated image to colored model.
 
-Demo [here](207.148.26.179) (This page haven't been finished yet)
+------
+
+I implemented a system to show the results by React and Three.js. (The codes are not included in this file)
+
+![demo video](demo.gif)
 
 ![img-from-testset](img-from-testset.png)
 
